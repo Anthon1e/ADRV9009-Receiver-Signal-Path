@@ -24,13 +24,13 @@ module adrv9009_rhb3(
     input clk,
     input reset,
     input signed [15:0] in,
-    output reg signed [31:0] out
+    output reg signed [15:0] out
     );
     
     // RHB3 filter coefficient, MSB is signed bit
     wire signed [15:0] coeff0, coeff1, coeff2, coeff3, coeff4, coeff5, coeff6, coeff7, coeff8;
     assign coeff0 = 16'hfd9a; // (-0.01874) * 2^15 = -614
-    assign coeff1 = 16'hfa9a; // (?0.04218) * 2^15 = -1382
+    assign coeff1 = 16'hfa9a; // (-0.04218) * 2^15 = -1382
     assign coeff2 = 16'h0676; // 0.050476 * 2^15 = 1654
     assign coeff3 = 16'h259e; // 0.293884 * 2^15 = 9630
     assign coeff4 = 16'h3846; // 0.439636 * 2^15 = 14406
@@ -70,7 +70,7 @@ module adrv9009_rhb3(
     
     // Output
     reg signed [31:0] xxh0, xxh1, xxh2, xxh3, xxh4, xxh5, xxh6, xxh7, xxh8;
-    reg signed [64:0] out1, out2, out3, out4, out5, out6, out7, out8, out9, out0;
+    reg signed [31:0] out1, out2, out3, out4, out5, out6, out7, out8, out9, out0;
     always @(posedge clk) begin
         if (reset) begin
             out <= 32'b0;
@@ -93,7 +93,7 @@ module adrv9009_rhb3(
             out9 <= out6 + out7;
             out0 <= out8;
             // Finally output
-            out <= out9 + out0;
+            out <= out9[31:16] + out0[31:16];
         end
     end
 endmodule
