@@ -79,14 +79,34 @@ module adrv9009_rhb2(
     end
     
     // Output
-    reg signed [31:0] xxh0, xxh1, xxh2, xxh3, xxh4, xxh5, xxh6, xxh7, xxh8;
-    reg signed [31:0] out1, out2, out3, out4, out5, out6, out7, out8, out9, out0;
+    reg signed [31:0] xxh00, xxh02, xxh04, xxh06, xxh08, xxh09;
+    reg signed [31:0] xxh10, xxh12, xxh14, xxh16, xxh18;
+    reg signed [31:0] out1, out2, out3, out4, out5, out6, out7, out8, out9, out0, out11, out12;
     always @(posedge clk) begin
         if (reset) begin
             out <= 48'b0;
         end else begin 
-            out1 <= xh00 + xh02 + xh04 + xh06 + xh08 + xh09 + xh10 + xh12 + xh14 + xh16 + xh18;
-            out <= out1[31:16];
+            // Cycle delay 1: Allow for multiplication process
+            {xxh00, xxh02, xxh04, xxh06, xxh08, xxh09} <= {xh00, xh02, xh04, xh06, xh08, xh09};
+            {xxh10, xxh12, xxh14, xxh16, xxh18} <= {xh10, xh12, xh14, xh16, xh18};
+            // Cycle delay 2: Allow for summation process
+            out1 <= xxh00 + xxh18;
+            out2 <= xxh02 + xxh04;
+            out3 <= xxh06 + xxh08;
+            out4 <= xxh10 + xxh12;
+            out5 <= xxh14 + xxh16;
+            out6 <= xxh09;
+            // Cycle delay 3
+            out7 <= out1 + out4;
+            out8 <= out2 + out5;
+            out9 <= out3 + out6;
+            // Cycle delay 4
+            out0 <= out7 + out8;
+            out11 <= out9;
+            // Cycle delay 5
+            out12 <= out0 + out11; 
+            // Finally output
+            out <= out12[31:16];
         end
     end
 endmodule
