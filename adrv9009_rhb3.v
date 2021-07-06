@@ -70,7 +70,9 @@ module adrv9009_rhb3(
     
     // Output
     reg signed [31:0] xxh0, xxh1, xxh2, xxh3, xxh4, xxh5, xxh6, xxh7, xxh8;
-    reg signed [31:0] out1, out2, out3, out4, out5, out6, out7, out8, out9, out0;
+    reg signed [31:0] out1, out2, out3, out4, out5;
+    reg signed [31:0] out6, out7, out8;
+    reg signed [31:0] out9, out0;
     always @(posedge clk) begin
         if (reset) begin
             out <= 32'b0;
@@ -80,11 +82,11 @@ module adrv9009_rhb3(
             // Cycle delay 1: Allow for multiplication process
             {xxh0, xxh1, xxh2, xxh3, xxh4, xxh5, xxh6, xxh7, xxh8} <= {xh0, xh1, xh2, xh3, xh4, xh5, xh6, xh7, xh8};
             // Cycle delay 2: Allow for summation process
-            out1 <= xxh0 + xxh1;
-            out2 <= xxh2 + xxh3;
-            out3 <= xxh4 + xxh5;
-            out4 <= xxh6 + xxh7;
-            out5 <= xxh8;
+            out1 <= xxh0 + xxh2;
+            out2 <= xxh1 + xxh3;
+            out3 <= xxh5 + xxh7;
+            out4 <= xxh6 + xxh8;
+            out5 <= xxh4;
             // Cycle delay 3
             out6 <= out1 + out2;
             out7 <= out3 + out4;
