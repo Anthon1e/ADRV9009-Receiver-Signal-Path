@@ -214,7 +214,7 @@ module adrv9009_rsp_tb2 #(
     end
     
     // Choosing between 2 inputs
-    reg [12:0] counter;
+    reg [13:0] counter;
     always @(posedge clk) begin
         if (reset) begin 
             in <= 16'b0;
@@ -228,8 +228,11 @@ module adrv9009_rsp_tb2 #(
             end else if (counter < 1500) begin
                 counter <= counter + 1;
                 in <= in2;
-            end else begin
+            end else if (counter < 2000) begin
+                counter <= counter + 1;
                 in <= in3;
+            end else begin
+                in <= in3 + in1;
             end
         end
     end
