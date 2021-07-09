@@ -24,12 +24,13 @@ module adrv9009_rsp (
     input clk,
     input reset,
     input signed [15:0] in,
-    output signed [31:0] out
+    output signed [15:0] out
     );
     
-    wire [31:0] out_rhb3, out_rhb2;
+    wire [15:0] out_rhb3, out_rhb2;
     
     adrv9009_rhb3 rhb3 (.clk (clk), .reset (reset), .in (in), .out (out_rhb3));
-    adrv9009_rhb2 rhb2 (.clk (clk), .reset (reset), .in (out_rhb3), .out (out)); 
+    adrv9009_rhb2 rhb2 (.clk (clk), .reset (reset), .in (out_rhb3), .out (out_rhb2)); 
+    adrv9009_rfir rfir (.clk (clk), .reset (reset), .in (out_rhb2), .out (out));
     
 endmodule
