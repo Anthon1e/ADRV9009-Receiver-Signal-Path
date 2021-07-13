@@ -25,35 +25,89 @@ module adrv9009_rsp_tb2 #(
     parameter period2 = 9, 
     parameter period3 = 0
     ) ();
-    reg clk, reset;
-    reg signed [15:0] in;
+    reg clk_m, clk_r, reset, en_rfir, wr_en, wr_done;
+    reg [1:0] mode_rfir;
+    reg [6:0] addr_in;
+    reg signed [15:0] coeff_list [0:71]; 
+    reg signed [15:0] in, coeff_in;
     wire signed [15:0] out;
     
     adrv9009_rsp DUT (
-    .clk (clk),
+    .clk_m (clk_m),
     .reset (reset),
     .in (in),
-    .out (out)
+    .out (out),
+    .en_rfir (en_rfir),
+    .mode_rfir (mode_rfir),
+    .clk_r (clk_r),
+    .wr_en (wr_en),
+    .addr_in (addr_in),
+    .coeff_in (coeff_in)
     );
-
-    // Set up for the rise of clock every 10ns (100MHz)
+    
+    // Set up for the rise of clk_m every 2ns (500MHz)
     initial begin
-        clk <= 1'b1;
+        clk_m <= 1'b1;
         #1;
         forever begin
-            clk <= 1'b0;
+            clk_m <= 1'b0;
             #1;
-            clk <= 1'b1;
+            clk_m <= 1'b1;
             #1;
         end
     end
     
-    // Set up for reset stage at the beginning
+    // Set up for the rise of clk_m every 10ns (100MHz)
     initial begin
+        clk_r <= 1'b1;
+        #5;
+        forever begin
+            clk_r <= 1'b0;
+            #5;
+            clk_r <= 1'b1;
+            #5;
+        end
+    end
+    
+    // Set up for reset stage at the beginning
+    localparam MODE24T = 1;
+    localparam MODE48T = 0;
+    initial begin
+        if (MODE24T)
+            $readmemh("coeff24.txt", coeff_list);
+        if (MODE48T)
+            $readmemh("coeff48.txt", coeff_list);
         reset <= 1;
-        #110;
+        #110; 
         reset <= 0;
         #100000;
+    end
+    
+    // Initialize RAM with filter coefficients
+    integer i;
+    always @(posedge clk_r) begin
+        if (reset) begin
+            wr_done <= 0;
+            i <= 0; 
+        end else begin
+            if (~wr_done) begin 
+                wr_en <= 1;
+                addr_in <= i;
+                coeff_in <= coeff_list[i];
+                i <= i + 1;
+                if ((i + 1 == 'd24) && (MODE24T)) begin
+                    wr_done <= 1;
+                    wr_en <= 0;
+                    en_rfir <= 1;
+                    mode_rfir <= 2'b01;
+                end else if ((i + 1 == 'd48) && (MODE48T)) begin
+                    wr_done <= 1;
+                    wr_en <= 0;
+                    en_rfir <= 1;
+                    mode_rfir <= 2'b10;
+                end
+            end    
+        end
     end
     
     // Set up for the input data after reset
@@ -72,7 +126,7 @@ module adrv9009_rsp_tb2 #(
     reg [3:0] cs1;
     reg [9:0] count1;
     reg signed [15:0] in1;
-    always @(posedge clk) begin
+    always @(posedge clk_m) begin
         if (reset) begin
             in1 <= 16'b0;
             cs1 <= `STATE0;
@@ -82,43 +136,35 @@ module adrv9009_rsp_tb2 #(
                 `STATE0: begin 
                     in1 <= 0;
                     if (count1 < period1)   begin cs1 <= `STATE0; count1 <= count1 + 1; end 
-                    else                    begin cs1 <= `STATE1; count1 <= 0; end                            
-                end
+                    else                    begin cs1 <= `STATE1; count1 <= 0; end end
                 `STATE1: begin
                     in1 <= 23170;
                     if (count1 < period1)   begin cs1 <= `STATE1; count1 <= count1 + 1; end   
-                    else                    begin cs1 <= `STATE2; count1 <= 0; end           
-                end
+                    else                    begin cs1 <= `STATE2; count1 <= 0; end end
                 `STATE2: begin
                     in1 <= 32767;
                     if (count1 < period1)   begin cs1 <= `STATE2; count1 <= count1 + 1; end   
-                    else                    begin cs1 <= `STATE3; count1 <= 0; end           
-                end
+                    else                    begin cs1 <= `STATE3; count1 <= 0; end end
                 `STATE3: begin
                     in1 <= 23170;
                     if (count1 < period1)   begin cs1 <= `STATE3; count1 <= count1 + 1; end   
-                    else                    begin cs1 <= `STATE4; count1 <= 0; end           
-                end
+                    else                    begin cs1 <= `STATE4; count1 <= 0; end end
                 `STATE4: begin
                     in1 <= 0;
                     if (count1 < period1)   begin cs1 <= `STATE4; count1 <= count1 + 1; end   
-                    else                    begin cs1 <= `STATE5; count1 <= 0; end           
-                end
+                    else                    begin cs1 <= `STATE5; count1 <= 0; end end
                 `STATE5: begin
                     in1 <= -23170;
                     if (count1 < period1)   begin cs1 <= `STATE5; count1 <= count1 + 1; end   
-                    else                    begin cs1 <= `STATE6; count1 <= 0; end           
-                end
+                    else                    begin cs1 <= `STATE6; count1 <= 0; end end
                 `STATE6: begin
                     in1 <= -32768;
                     if (count1 < period1)   begin cs1 <= `STATE6; count1 <= count1 + 1; end   
-                    else                    begin cs1 <= `STATE7; count1 <= 0; end           
-                end
+                    else                    begin cs1 <= `STATE7; count1 <= 0; end end
                 `STATE7: begin
                     in1 <= -23170;
                     if (count1 < period1)   begin cs1 <= `STATE7; count1 <= count1 + 1; end   
-                    else                    begin cs1 <= `STATE0; count1 <= 0; end           
-                end
+                    else                    begin cs1 <= `STATE0; count1 <= 0; end end
             endcase
         end
     end
@@ -127,7 +173,7 @@ module adrv9009_rsp_tb2 #(
     reg [3:0] cs2;
     reg [5:0] count2;
     reg signed [15:0] in2;
-    always @(posedge clk) begin
+    always @(posedge clk_m) begin
         if (reset) begin
             in2 <= 16'b0;
             cs2 <= `STATE0;
@@ -137,43 +183,35 @@ module adrv9009_rsp_tb2 #(
                 `STATE0: begin 
                     in2 <= 0;
                     if (count2 < period2)   begin cs2 <= `STATE0; count2 <= count2 + 1; end 
-                    else                    begin cs2 <= `STATE1; count2 <= 0; end                            
-                end
+                    else                    begin cs2 <= `STATE1; count2 <= 0; end end
                 `STATE1: begin
                     in2 <= 23170;
                     if (count2 < period2)   begin cs2 <= `STATE1; count2 <= count2 + 1; end   
-                    else                    begin cs2 <= `STATE2; count2 <= 0; end           
-                end
+                    else                    begin cs2 <= `STATE2; count2 <= 0; end end
                 `STATE2: begin
                     in2 <= 32767;
                     if (count2 < period2)   begin cs2 <= `STATE2; count2 <= count2 + 1; end   
-                    else                    begin cs2 <= `STATE3; count2 <= 0; end           
-                end
+                    else                    begin cs2 <= `STATE3; count2 <= 0; end end
                 `STATE3: begin
                     in2 <= 23170;
                     if (count2 < period2)   begin cs2 <= `STATE3; count2 <= count2 + 1; end   
-                    else                    begin cs2 <= `STATE4; count2 <= 0; end           
-                end
+                    else                    begin cs2 <= `STATE4; count2 <= 0; end end
                 `STATE4: begin
                     in2 <= 0;
                     if (count2 < period2)   begin cs2 <= `STATE4; count2 <= count2 + 1; end   
-                    else                    begin cs2 <= `STATE5; count2 <= 0; end           
-                end
+                    else                    begin cs2 <= `STATE5; count2 <= 0; end end
                 `STATE5: begin
                     in2 <= -23170;
                     if (count2 < period2)   begin cs2 <= `STATE5; count2 <= count2 + 1; end   
-                    else                    begin cs2 <= `STATE6; count2 <= 0; end           
-                end
+                    else                    begin cs2 <= `STATE6; count2 <= 0; end end
                 `STATE6: begin
                     in2 <= -32768;
                     if (count2 < period2)   begin cs2 <= `STATE6; count2 <= count2 + 1; end   
-                    else                    begin cs2 <= `STATE7; count2 <= 0; end           
-                end
+                    else                    begin cs2 <= `STATE7; count2 <= 0; end end
                 `STATE7: begin
                     in2 <= -23170;
                     if (count2 < period2)   begin cs2 <= `STATE7; count2 <= count2 + 1; end   
-                    else                    begin cs2 <= `STATE0; count2 <= 0; end           
-                end
+                    else                    begin cs2 <= `STATE0; count2 <= 0; end end
             endcase
         end
     end
@@ -182,41 +220,37 @@ module adrv9009_rsp_tb2 #(
     reg [3:0] cs3;
     reg [5:0] count3;
     reg signed [15:0] in3;
-    always @(posedge clk) begin
+    always @(posedge clk_m) begin
         if (reset) begin
             in3 <= 16'b0;
             cs3 <= `STATE0;
-            count3 <= 0;  
+            count3 <= 0;
         end else begin
             case (cs3)
-                `STATE0: begin 
+                `STATE0: begin
                     in3 <= 0;
                     if (count3 < period3)   begin cs3 <= `STATE0; count3 <= count3 + 1; end 
-                    else                    begin cs3 <= `STATE1; count3 <= 0; end                            
-                end
+                    else                    begin cs3 <= `STATE1; count3 <= 0; end end
                 `STATE1: begin
                     in3 <= 32767;
                     if (count3 < period3)   begin cs3 <= `STATE1; count3 <= count3 + 1; end   
-                    else                    begin cs3 <= `STATE2; count3 <= 0; end           
-                end      
+                    else                    begin cs3 <= `STATE2; count3 <= 0; end end      
                 `STATE2: begin
                     in3 <= 0;
                     if (count3 < period3)   begin cs3 <= `STATE2; count3 <= count3 + 1; end   
-                    else                    begin cs3 <= `STATE3; count3 <= 0; end           
-                end
+                    else                    begin cs3 <= `STATE3; count3 <= 0; end end
                 `STATE3: begin
                     in3 <= -32768;
                     if (count3 < period3)   begin cs3 <= `STATE3; count3 <= count3 + 1; end   
-                    else                    begin cs3 <= `STATE0; count3 <= 0; end           
-                end
+                    else                    begin cs3 <= `STATE0; count3 <= 0; end end
             endcase
         end
     end
     
     // Choosing between 2 inputs
     reg [13:0] counter;
-    always @(posedge clk) begin
-        if (reset) begin 
+    always @(posedge clk_m) begin
+        if (reset) begin
             in <= 16'b0;
             counter <= 13'b0;
         end else begin
@@ -231,9 +265,11 @@ module adrv9009_rsp_tb2 #(
             end else if (counter < 2000) begin
                 counter <= counter + 1;
                 in <= in3;
-            end else begin
+            end else if (counter < 3000) begin
+                counter <= counter + 1;
                 in <= in3 + in1;
-            end
+            end else
+                in <= in3 + in2;
         end
     end
 endmodule
