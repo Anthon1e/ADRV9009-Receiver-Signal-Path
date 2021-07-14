@@ -26,9 +26,12 @@ module adrv9009_rsp (
     input reset,
     input signed [15:0] in,
     output signed [15:0] out,
+    output out_valid,
     // For rfir module
     input en_rfir,
     input [1:0] mode_rfir,
+    input [1:0] gain_rfir,
+    input [1:0] deci_rfir,
     // For RAM module
     input clk_r,
     input wr_en,
@@ -43,10 +46,11 @@ module adrv9009_rsp (
     adrv9009_rhb3 rhb3 (.clk (clk_m), .reset (reset), .in (in), .out (out_rhb3));
     adrv9009_rhb2 rhb2 (.clk (clk_m), .reset (reset), .in (out_rhb3), .out (out_rhb2));
     adrv9009_rfir rfir (.clk (clk_m), .reset (reset), .en_rfir (en_rfir), .mode_rfir (mode_rfir), 
-                        .in (out_rhb2), .out (out), .ram_coeff (coeff_out), .addr_out (addr_out));
+                        .gain_rfir (gain_rfir), .deci_rfir(deci_rfir), .in (out_rhb2), .out (out), 
+                        .out_valid (out_valid), .ram_coeff (coeff_out), .addr_out (addr_out));
     
     // RAM modules to hold coefficients 
-    RAM_coeff ramc (.clk_m (clk_m), .clk_r (clk_r), .wr_en (wr_en), .addr_in (addr_in), 
-                    .addr_out (addr_out), .in (coeff_in), .out (coeff_out)); 
+    RAM_coeff ramc     (.clk_m (clk_m), .clk_r (clk_r), .wr_en (wr_en), .addr_in (addr_in), .addr_out (addr_out), 
+                        .in (coeff_in), .out (coeff_out)); 
 
 endmodule
