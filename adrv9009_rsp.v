@@ -39,15 +39,16 @@ module adrv9009_rsp (
     input signed [15:0] coeff_in
     );
     
-    wire signed [15:0] out_rhb3, out_rhb2, coeff_out;
+    wire signed [15:0] out_rhb3, out_rhb2, out_rfir, coeff_out;
     wire [6:0] addr_out;
     
     // ADRV9009 Receiver signal datapath
     adrv9009_rhb3 rhb3 (.clk (clk_m), .reset (reset), .in (in), .out (out_rhb3));
     adrv9009_rhb2 rhb2 (.clk (clk_m), .reset (reset), .in (out_rhb3), .out (out_rhb2));
-    adrv9009_rfir rfir (.clk (clk_m), .reset (reset), .en_rfir (en_rfir), .mode_rfir (mode_rfir), 
-                        .gain_rfir (gain_rfir), .deci_rfir(deci_rfir), .in (out_rhb2), .out (out), 
+    adrv9009_rfir rfir (.clk (clk_m), .reset (reset), .en_rfir (en_rfir), .mode_rfir (mode_rfir),
+                        .gain_rfir (gain_rfir), .deci_rfir(deci_rfir), .in (out_rhb2), .out (out_rfir),
                         .out_valid (out_valid), .ram_coeff (coeff_out), .addr_out (addr_out));
+    adrv9009_rifc rifc (.clk (clk_m), .reset (reset), .in (out_rfir), .out (out));
     
     // RAM modules to hold coefficients 
     RAM_coeff ramc     (.clk_m (clk_m), .clk_r (clk_r), .wr_en (wr_en), .addr_in (addr_in), .addr_out (addr_out), 
